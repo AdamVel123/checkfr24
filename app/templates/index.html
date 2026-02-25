@@ -26,7 +26,7 @@
 
       <section class="card">
         <h2>Фильтры</h2>
-        <form id="filters-form">
+        <form id="filters-form" method="post" action="javascript:void(0);" onsubmit="return false;">
           <div class="grid">
             <label>Длительность от (ч)
               <input type="number" step="0.1" min="0" name="min_duration_h" placeholder="Напр. 1" />
@@ -71,7 +71,7 @@
           </div>
 
           <div class="actions">
-            <button type="submit" class="btn btn-primary">Найти рейсы</button>
+            <button type="button" id="search-btn" class="btn btn-primary">Найти рейсы</button>
             <button type="reset" class="btn btn-ghost">Сбросить</button>
           </div>
         </form>

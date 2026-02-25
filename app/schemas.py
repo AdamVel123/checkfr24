@@ -41,13 +41,11 @@ class FlightView:
     airline: Optional[str]
     aircraft_icao: Optional[str]
     departure_airport: Optional[str]
-
     departure_airport_icao: Optional[str]
     departure_city: Optional[str]
     departure_country: Optional[str]
     arrival_airport: Optional[str]
     arrival_airport_icao: Optional[str]
-
     arrival_city: Optional[str]
     arrival_country: Optional[str]
     scheduled_duration_min: Optional[int]
