@@ -173,3 +173,27 @@ def test_extract_duration_handles_millisecond_timestamps() -> None:
 
     value = FR24Service._extract_duration_min(data, details)
     assert value == 120
+
+
+def test_match_prefilter_does_not_drop_location_only_queries() -> None:
+    flight = FlightView(
+        fr24_id="5",
+        flight_number="SU10",
+        callsign="AFL10",
+        airline=None,
+        aircraft_icao="A320",
+        departure_airport="LED",
+        departure_airport_icao=None,
+        departure_city=None,
+        departure_country=None,
+        arrival_airport="SVO",
+        arrival_airport_icao=None,
+        arrival_city=None,
+        arrival_country=None,
+        scheduled_duration_min=None,
+        is_past=False,
+    )
+
+    # На prefilter-этапе ICAO/страна могут отсутствовать, и рейс нельзя отбрасывать.
+    filters = FlightFilter(departure_city_or_airport="ULLI", arrival_airport="UUEE")
+    assert FR24Service._match_prefilter(flight, filters) is True

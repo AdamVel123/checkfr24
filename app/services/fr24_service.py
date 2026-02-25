@@ -46,28 +46,32 @@ class FR24Service:
 
     def search(self, filters: FlightFilter, limit: int = 100) -> list[FlightView]:
         has_duration_filter = filters.min_duration_h is not None or filters.max_duration_h is not None
-        has_non_duration_filter = any(
+        needs_details_for_matching = any(
             [
                 bool(filters.departure_country),
                 bool(filters.departure_city_or_airport),
                 bool(filters.arrival_country),
                 bool(filters.arrival_airport),
-                bool(filters.aircraft_icao),
-                bool(filters.airline),
             ]
         )
 
-        deadline = monotonic() + (35.0 if has_duration_filter and not has_non_duration_filter else 15.0)
+        deadline = monotonic() + (35.0 if has_duration_filter and not needs_details_for_matching else 25.0)
 
         flights = self._get_live_flights()
         candidates: list[Any] = []
         for raw in flights:
             base_view = self._to_view(raw)
-            if self._match_filters(base_view, filters, skip_duration=True):
+            # На этапе prefilter нельзя жёстко фильтровать по полям,
+            # которые часто появляются только в details (ICAO аэропорта/страны/города).
+            if self._match_prefilter(base_view, filters):
                 candidates.append(raw)
 
         result: list[FlightView] = []
-        scan_limit = max(limit * 8, 800) if has_duration_filter and not has_non_duration_filter else max(limit * 4, 220)
+        scan_limit = (
+            max(limit * 12, 1200)
+            if needs_details_for_matching
+            else (max(limit * 8, 800) if has_duration_filter else max(limit * 4, 220))
+        )
 
         for raw in candidates[:scan_limit]:
             if monotonic() > deadline:
@@ -287,6 +291,21 @@ class FR24Service:
         if not source:
             return False
         return expected.lower() in source.lower()
+
+    @classmethod
+    def _match_prefilter(cls, flight: FlightView, filters: FlightFilter) -> bool:
+        # Prefilter only by fields that are usually present in the live feed.
+        if filters.aircraft_icao and not cls._contains(flight.aircraft_icao, filters.aircraft_icao):
+            return False
+
+        if filters.airline and not (
+            cls._contains(flight.airline, filters.airline)
+            or cls._contains(flight.callsign, filters.airline)
+            or cls._contains(flight.flight_number, filters.airline)
+        ):
+            return False
+
+        return True
 
     @classmethod
     def _match_filters(cls, flight: FlightView, filters: FlightFilter, skip_duration: bool = False) -> bool:
