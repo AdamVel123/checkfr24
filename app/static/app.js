@@ -36,7 +36,6 @@ function toPayload(formData) {
       payload[key] = Number(value);
     } else {
       payload[key] = value.trim();
-
     }
   }
   if (!('include_past' in payload)) payload.include_past = false;
@@ -66,9 +65,6 @@ function isFieldMatched(field, expected, flights) {
         contains(f.departure_airport_icao, expected)
       );
     }
-    if (field === 'arrival_city_or_airport') {
-      return contains(f.arrival_city, expected) || contains(f.arrival_airport, expected) || contains(f.arrival_airport_icao, expected);
-    }
     if (field === 'arrival_airport') {
       return contains(f.arrival_airport, expected) || contains(f.arrival_airport_icao, expected);
     }
@@ -86,14 +82,12 @@ function updateFieldHints(payload, flights) {
     'departure_country',
     'departure_city_or_airport',
     'arrival_country',
-    'arrival_city_or_airport',
     'arrival_airport',
     'aircraft_icao',
     'airline',
   ];
 
   const hasResults = flights.length > 0;
-
 
   for (const field of fields) {
     const value = payload[field];

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from time import monotonic
-
 from typing import Any
+
+import requests
 
 from app.schemas import FlightFilter, FlightView
 
@@ -27,35 +28,38 @@ class FR24Service:
         "великобритания": "united kingdom",
     }
 
-    def __init__(self) -> None:
-        try:
-            from FlightRadar24 import FlightRadar24API  # type: ignore
-        except ImportError as exc:
-            raise FR24ServiceError(
-                "Не установлена библиотека FlightRadar24API. Установите зависимости из requirements.txt"
-            ) from exc
+    FEED_URL = "https://data-cloud.flightradar24.com/zones/fcgi/feed.js"
+    DETAILS_URL = "https://data-live.flightradar24.com/clickhandler/"
 
-        self.api = FlightRadar24API()
+    def __init__(self) -> None:
+        self.session = requests.Session()
+        self.library_api: Any | None = None
+
+        # Резервный вариант через библиотеку, если прямые endpoints недоступны.
+        for module_name in ("FlightRadar24", "FlightRadarAPI"):
+            try:
+                mod = __import__(module_name, fromlist=["FlightRadar24API"])
+                self.library_api = getattr(mod, "FlightRadar24API")()
+                break
+            except Exception:
+                continue
 
     def search(self, filters: FlightFilter, limit: int = 100) -> list[FlightView]:
-        flights = self.api.get_flights()
         has_duration_filter = filters.min_duration_h is not None or filters.max_duration_h is not None
         has_non_duration_filter = any(
             [
                 bool(filters.departure_country),
                 bool(filters.departure_city_or_airport),
                 bool(filters.arrival_country),
-                bool(filters.arrival_city_or_airport),
                 bool(filters.arrival_airport),
                 bool(filters.aircraft_icao),
                 bool(filters.airline),
             ]
         )
 
-        # Для запросов только по длительности нужно больше времени и больше рейсов,
-        # иначе можно легко получить 0 просто из-за неполных details-данных.
         deadline = monotonic() + (35.0 if has_duration_filter and not has_non_duration_filter else 15.0)
 
+        flights = self._get_live_flights()
         candidates: list[Any] = []
         for raw in flights:
             base_view = self._to_view(raw)
@@ -69,12 +73,7 @@ class FR24Service:
             if monotonic() > deadline:
                 break
 
-            details: dict[str, Any] | None
-            try:
-                details = self.api.get_flight_details(raw)
-            except Exception:
-                details = None
-
+            details = self._get_flight_details(raw)
             view = self._to_view(raw, details)
             if self._match_filters(view, filters):
                 result.append(view)
@@ -82,6 +81,72 @@ class FR24Service:
                     break
 
         return result
+
+    def _get_live_flights(self) -> list[Any]:
+        try:
+            params = {
+                "bounds": "90,-90,-180,180",
+                "faa": "1",
+                "satellite": "1",
+                "mlat": "1",
+                "flarm": "1",
+                "adsb": "1",
+                "gnd": "1",
+                "air": "1",
+                "vehicles": "0",
+                "estimated": "1",
+                "maxage": "14400",
+                "gliders": "1",
+                "stats": "0",
+            }
+            resp = self.session.get(self.FEED_URL, params=params, timeout=12)
+            resp.raise_for_status()
+            payload = resp.json()
+
+            flights: list[dict[str, Any]] = []
+            for key, value in payload.items():
+                if not isinstance(value, list) or len(value) < 17:
+                    continue
+                flights.append(
+                    {
+                        "id": key,
+                        "aircraft_code": value[8],
+                        "registration": value[9],
+                        "timestamp": value[10],
+                        "origin_airport_iata": value[11],
+                        "destination_airport_iata": value[12],
+                        "number": value[13],
+                        "callsign": value[16],
+                    }
+                )
+            return flights
+        except Exception:
+            if self.library_api is None:
+                raise FR24ServiceError("Не удалось получить live рейсы из FlightRadar24")
+            return self.library_api.get_flights()
+
+    def _get_flight_details(self, raw: Any) -> dict[str, Any] | None:
+        flight_id = None
+        if isinstance(raw, dict):
+            flight_id = raw.get("id") or raw.get("flight_id")
+        else:
+            flight_id = getattr(raw, "id", None)
+
+        if flight_id:
+            try:
+                resp = self.session.get(self.DETAILS_URL, params={"flight": flight_id}, timeout=8)
+                resp.raise_for_status()
+                data = resp.json()
+                return data if isinstance(data, dict) else None
+            except Exception:
+                pass
+
+        if self.library_api is not None:
+            try:
+                return self.library_api.get_flight_details(raw)
+            except Exception:
+                return None
+        return None
 
     @staticmethod
     def _safe_str(value: Any) -> str | None:
@@ -114,9 +179,7 @@ class FR24Service:
         dep_iata = data.get("origin_airport_iata") or data.get("airport_origin_code_iata") or dep_code.get("iata")
         arr_iata = data.get("destination_airport_iata") or data.get("airport_destination_code_iata") or arr_code.get("iata")
         dep_icao = data.get("origin_airport_icao") or data.get("airport_origin_code_icao") or dep_code.get("icao")
-        arr_icao = (
-            data.get("destination_airport_icao") or data.get("airport_destination_code_icao") or arr_code.get("icao")
-        )
+        arr_icao = data.get("destination_airport_icao") or data.get("airport_destination_code_icao") or arr_code.get("icao")
 
         departure_city = data.get("origin_city") or data.get("airport_origin_city") or dep_region.get("city")
         arrival_city = data.get("destination_city") or data.get("airport_destination_city") or arr_region.get("city")
@@ -129,9 +192,7 @@ class FR24Service:
         airline_field = " ".join([item for item in [airline_name, airline_icao, airline_iata] if item]) or None
 
         dep_country = data.get("origin_country") or data.get("airport_origin_country_name") or dep_country_obj.get("name")
-        arr_country = (
-            data.get("destination_country") or data.get("airport_destination_country_name") or arr_country_obj.get("name")
-        )
+        arr_country = data.get("destination_country") or data.get("airport_destination_country_name") or arr_country_obj.get("name")
 
         identification = self._as_dict(details.get("identification"))
         identification_number = self._as_dict(identification.get("number"))
@@ -176,8 +237,6 @@ class FR24Service:
                 value = value.get("timestamp") or value.get("time")
             if not isinstance(value, (int, float)):
                 return None
-
-            # Некоторые источники отдают миллисекунды.
             if value > 10_000_000_000:
                 value = value / 1000
             return int(value)
@@ -195,7 +254,6 @@ class FR24Service:
             delta = int((arrival_ts_norm - departure_ts_norm) // 60)
             return delta if delta > 0 else None
 
-        # Дополнительные варианты из FR24 details.
         real = time_obj.get("real") if isinstance(time_obj.get("real"), dict) else {}
         dep_real = normalize_ts(real.get("departure"))
         arr_real = normalize_ts(real.get("arrival"))
@@ -205,7 +263,6 @@ class FR24Service:
 
         duration = data.get("duration")
         if isinstance(duration, (int, float)):
-            # Если приходит значение в секундах, конвертируем.
             return int(duration // 60) if duration > 1000 else int(duration)
 
         other = time_obj.get("other") if isinstance(time_obj.get("other"), dict) else {}
@@ -252,16 +309,9 @@ class FR24Service:
             cls._contains(flight.departure_city, filters.departure_city_or_airport)
             or cls._contains(flight.departure_airport, filters.departure_city_or_airport)
             or cls._contains(flight.departure_airport_icao, filters.departure_city_or_airport)
-
         ):
             return False
         if expected_arr_country and not cls._contains(flight_arr_country, expected_arr_country):
-            return False
-        if not (
-            cls._contains(flight.arrival_city, filters.arrival_city_or_airport)
-            or cls._contains(flight.arrival_airport, filters.arrival_city_or_airport)
-            or cls._contains(flight.arrival_airport_icao, filters.arrival_city_or_airport)
-        ):
             return False
         if not (
             cls._contains(flight.arrival_airport, filters.arrival_airport)

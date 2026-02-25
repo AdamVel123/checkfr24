@@ -19,7 +19,6 @@ class FlightFilterRequest(BaseModel):
     departure_country: str | None = None
     departure_city_or_airport: str | None = None
     arrival_country: str | None = None
-    arrival_city_or_airport: str | None = None
     arrival_airport: str | None = None
     aircraft_icao: str | None = None
     airline: str | None = None

@@ -11,7 +11,6 @@ class FlightFilter:
     departure_country: Optional[str] = None
     departure_city_or_airport: Optional[str] = None
     arrival_country: Optional[str] = None
-    arrival_city_or_airport: Optional[str] = None
     arrival_airport: Optional[str] = None
     aircraft_icao: Optional[str] = None
     airline: Optional[str] = None
@@ -25,7 +24,6 @@ class FlightFilter:
                 bool(self.departure_country),
                 bool(self.departure_city_or_airport),
                 bool(self.arrival_country),
-                bool(self.arrival_city_or_airport),
                 bool(self.arrival_airport),
                 bool(self.aircraft_icao),
                 bool(self.airline),
