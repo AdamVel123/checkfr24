@@ -10,6 +10,7 @@ class FR24ServiceError(RuntimeError):
 
 
 class FR24Service:
+
     COUNTRY_ALIASES = {
         "россия": "russia",
         "рф": "russia",
@@ -38,6 +39,7 @@ class FR24Service:
     def search(self, filters: FlightFilter, limit: int = 100) -> list[FlightView]:
         flights = self.api.get_flights()
 
+
         candidates: list[Any] = []
         for raw in flights:
             base_view = self._to_view(raw)
@@ -60,6 +62,7 @@ class FR24Service:
 
         return result
 
+
     @staticmethod
     def _safe_str(value: Any) -> str | None:
         if value is None:
@@ -67,13 +70,16 @@ class FR24Service:
         text = str(value).strip()
         return text or None
 
+
     @staticmethod
     def _as_dict(value: Any) -> dict[str, Any]:
         return value if isinstance(value, dict) else {}
 
+
     def _to_view(self, raw: Any, details: dict[str, Any] | None = None) -> FlightView:
         data = raw if isinstance(raw, dict) else getattr(raw, "__dict__", {})
         details = details or {}
+
 
         airport = self._as_dict(details.get("airport"))
         dep_detail = self._as_dict(airport.get("origin"))
@@ -116,35 +122,42 @@ class FR24Service:
         status = self._as_dict(details.get("status"))
         duration_min = self._extract_duration_min(data, details)
         status_text = (data.get("status") or status.get("text") or "").lower()
+
         is_past = "landed" in status_text or "arrived" in status_text
 
         return FlightView(
             fr24_id=self._safe_str(data.get("id") or data.get("flight_id") or "") or "unknown",
+
             flight_number=self._safe_str(
                 data.get("number")
                 or data.get("flight")
                 or data.get("flight_number")
+
                 or identification_number.get("default")
             ),
             callsign=self._safe_str(data.get("callsign") or identification.get("callsign")),
             airline=self._safe_str(airline_field),
             aircraft_icao=self._safe_str(data.get("aircraft_code") or data.get("aircraft_icao") or aircraft_model.get("code")),
+
             departure_airport=self._safe_str(departure_airport),
             departure_city=self._safe_str(departure_city),
             departure_country=self._safe_str(dep_country),
             arrival_airport=self._safe_str(arrival_airport),
             arrival_city=self._safe_str(arrival_city),
             arrival_country=self._safe_str(arr_country),
+
             scheduled_duration_min=duration_min,
             is_past=is_past,
         )
 
     @staticmethod
+
     def _extract_duration_min(data: dict[str, Any], details: dict[str, Any] | None = None) -> int | None:
         details = details or {}
 
         time_obj = details.get("time") if isinstance(details.get("time"), dict) else {}
         scheduled = time_obj.get("scheduled") if isinstance(time_obj.get("scheduled"), dict) else {}
+
 
         departure_ts = scheduled.get("departure") or data.get("time_scheduled") or data.get("scheduled_departure")
         arrival_ts = scheduled.get("arrival") or data.get("time_estimated") or data.get("scheduled_arrival")
@@ -220,3 +233,4 @@ class FR24Service:
             return False
 
         return True
+

@@ -66,6 +66,7 @@ def test_cache_prune(tmp_path) -> None:
     assert cache.get_all() == []
 
 
+
 def test_match_filters_country_alias_ru() -> None:
     flight = FlightView(
         fr24_id="2",
@@ -108,6 +109,7 @@ def test_match_filters_airline_by_callsign_prefix() -> None:
     assert FR24Service._match_filters(flight, filters) is True
 
 
+
 def test_to_view_handles_none_nested_detail_objects() -> None:
     service = object.__new__(FR24Service)
     raw = {
@@ -127,3 +129,4 @@ def test_to_view_handles_none_nested_detail_objects() -> None:
     assert view.callsign == "AFL123"
     assert view.departure_city is None
     assert view.arrival_city is None
+
