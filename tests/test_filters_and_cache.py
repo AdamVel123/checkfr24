@@ -23,13 +23,11 @@ def test_match_filters_aircraft_and_airline() -> None:
         airline="Aeroflot",
         aircraft_icao="B738",
         departure_airport="SVO",
-
         departure_airport_icao="UUEE",
         departure_city="Moscow",
         departure_country="Russia",
         arrival_airport="AYT",
         arrival_airport_icao="LTAI",
-
         arrival_city="Antalya",
         arrival_country="Turkey",
         scheduled_duration_min=180,
@@ -51,13 +49,11 @@ def test_cache_prune(tmp_path) -> None:
         airline=None,
         aircraft_icao=None,
         departure_airport=None,
-
         departure_airport_icao=None,
         departure_city=None,
         departure_country=None,
         arrival_airport=None,
         arrival_airport_icao=None,
-
         arrival_city=None,
         arrival_country=None,
         scheduled_duration_min=None,
@@ -74,7 +70,6 @@ def test_cache_prune(tmp_path) -> None:
     assert cache.get_all() == []
 
 
-
 def test_match_filters_country_alias_ru() -> None:
     flight = FlightView(
         fr24_id="2",
@@ -83,13 +78,11 @@ def test_match_filters_country_alias_ru() -> None:
         airline="Aeroflot AFL SU",
         aircraft_icao="B738",
         departure_airport="SVO",
-
         departure_airport_icao="UUEE",
         departure_city="Moscow",
         departure_country="Russia",
         arrival_airport="LED",
         arrival_airport_icao="ULLI",
-
         arrival_city="Saint Petersburg",
         arrival_country="Russia",
         scheduled_duration_min=95,
@@ -108,13 +101,11 @@ def test_match_filters_airline_by_callsign_prefix() -> None:
         airline="Aeroflot AFL SU",
         aircraft_icao="B738",
         departure_airport="SVO",
-
         departure_airport_icao="UUEE",
         departure_city="Moscow",
         departure_country="Russia",
         arrival_airport="AER",
         arrival_airport_icao="URSS",
-
         arrival_city="Sochi",
         arrival_country="Russia",
         scheduled_duration_min=150,
@@ -123,7 +114,6 @@ def test_match_filters_airline_by_callsign_prefix() -> None:
 
     filters = FlightFilter(airline="AFL")
     assert FR24Service._match_filters(flight, filters) is True
-
 
 
 def test_to_view_handles_none_nested_detail_objects() -> None:
@@ -147,7 +137,6 @@ def test_to_view_handles_none_nested_detail_objects() -> None:
     assert view.arrival_city is None
 
 
-
 def test_match_filters_by_airport_icao_code() -> None:
     flight = FlightView(
         fr24_id="4",
@@ -169,3 +158,18 @@ def test_match_filters_by_airport_icao_code() -> None:
 
     filters = FlightFilter(arrival_airport="uuee")
     assert FR24Service._match_filters(flight, filters) is True
+
+
+def test_extract_duration_handles_millisecond_timestamps() -> None:
+    data = {}
+    details = {
+        "time": {
+            "scheduled": {
+                "departure": 1710000000000,
+                "arrival": 1710007200000,
+            }
+        }
+    }
+
+    value = FR24Service._extract_duration_min(data, details)
+    assert value == 120

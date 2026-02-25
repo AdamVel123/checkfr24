@@ -97,12 +97,23 @@ function updateFieldHints(payload, flights) {
     'airline',
   ];
 
+
+  const hasResults = flights.length > 0;
+
+
   for (const field of fields) {
     const value = payload[field];
     if (value === undefined || value === null || value === '') {
       setHint(field, '');
       continue;
     }
+
+
+    if (!hasResults) {
+      setHint(field, 'ℹ Нет результатов по комбинации фильтров', '');
+      continue;
+    }
+
 
     const matched = isFieldMatched(field, value, flights);
     if (matched) {
@@ -163,10 +174,6 @@ form.addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
 
-      signal: controller.signal,
-    });
-
-
     const rawText = await response.text();
     let data = {};
     try {
@@ -184,7 +191,7 @@ form.addEventListener('submit', async (e) => {
     renderFlights(flights);
     updateFieldHints(payload, flights);
     table.hidden = false;
-    setMessage(`Найдено рейсов: ${data.count ?? flights.length}`, 'success');
+
   } catch (error) {
     if (error.name === 'AbortError') {
       setMessage('Поиск занял слишком много времени. Уточните фильтры (например ICAO аэропорта).', 'error');

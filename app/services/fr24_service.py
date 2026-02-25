@@ -42,7 +42,22 @@ class FR24Service:
     def search(self, filters: FlightFilter, limit: int = 100) -> list[FlightView]:
         flights = self.api.get_flights()
 
-        deadline = monotonic() + 12.0
+        has_duration_filter = filters.min_duration_h is not None or filters.max_duration_h is not None
+        has_non_duration_filter = any(
+            [
+                bool(filters.departure_country),
+                bool(filters.departure_city_or_airport),
+                bool(filters.arrival_country),
+                bool(filters.arrival_city_or_airport),
+                bool(filters.arrival_airport),
+                bool(filters.aircraft_icao),
+                bool(filters.airline),
+            ]
+        )
+
+        # Для запросов только по длительности нужно больше времени и больше рейсов,
+        # иначе можно легко получить 0 просто из-за неполных details-данных.
+        deadline = monotonic() + (35.0 if has_duration_filter and not has_non_duration_filter else 15.0)
 
 
         candidates: list[Any] = []
@@ -53,7 +68,9 @@ class FR24Service:
 
         result: list[FlightView] = []
 
-        for raw in candidates[: max(limit * 4, 180)]:
+        scan_limit = max(limit * 8, 800) if has_duration_filter and not has_non_duration_filter else max(limit * 4, 220)
+
+        for raw in candidates[:scan_limit]:
             if monotonic() > deadline:
                 break
 
@@ -172,25 +189,51 @@ class FR24Service:
     def _extract_duration_min(data: dict[str, Any], details: dict[str, Any] | None = None) -> int | None:
         details = details or {}
 
+        def normalize_ts(value: Any) -> int | None:
+            if isinstance(value, dict):
+                value = value.get("timestamp") or value.get("time")
+            if not isinstance(value, (int, float)):
+                return None
+
+            # Некоторые источники отдают миллисекунды.
+            if value > 10_000_000_000:
+                value = value / 1000
+            return int(value)
+
         time_obj = details.get("time") if isinstance(details.get("time"), dict) else {}
         scheduled = time_obj.get("scheduled") if isinstance(time_obj.get("scheduled"), dict) else {}
-
 
         departure_ts = scheduled.get("departure") or data.get("time_scheduled") or data.get("scheduled_departure")
         arrival_ts = scheduled.get("arrival") or data.get("time_estimated") or data.get("scheduled_arrival")
 
-        if isinstance(departure_ts, dict):
-            departure_ts = departure_ts.get("timestamp") or departure_ts.get("time")
-        if isinstance(arrival_ts, dict):
-            arrival_ts = arrival_ts.get("timestamp") or arrival_ts.get("time")
+        departure_ts_norm = normalize_ts(departure_ts)
+        arrival_ts_norm = normalize_ts(arrival_ts)
 
-        if isinstance(departure_ts, (int, float)) and isinstance(arrival_ts, (int, float)):
-            delta = int((arrival_ts - departure_ts) // 60)
+        if departure_ts_norm is not None and arrival_ts_norm is not None:
+            delta = int((arrival_ts_norm - departure_ts_norm) // 60)
+            return delta if delta > 0 else None
+
+        # Дополнительные варианты из FR24 details.
+        real = time_obj.get("real") if isinstance(time_obj.get("real"), dict) else {}
+        dep_real = normalize_ts(real.get("departure"))
+        arr_real = normalize_ts(real.get("arrival"))
+        if dep_real is not None and arr_real is not None:
+            delta = int((arr_real - dep_real) // 60)
+
             return delta if delta > 0 else None
 
         duration = data.get("duration")
         if isinstance(duration, (int, float)):
-            return int(duration // 60) if duration > 500 else int(duration)
+
+            # Если приходит значение в секундах, конвертируем.
+            return int(duration // 60) if duration > 1000 else int(duration)
+
+        other = time_obj.get("other") if isinstance(time_obj.get("other"), dict) else {}
+        for key in ("eta", "duration", "delay"):
+            value = other.get(key)
+            if isinstance(value, (int, float)) and value > 0:
+                return int(value // 60) if value > 1000 else int(value)
+
 
         return None
 
