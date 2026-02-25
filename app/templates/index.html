@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FR24 Flight Finder</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Поиск рейсов FlightRadar24</h1>
+      <form id="filters-form">
+        <div class="grid">
+          <label>Длительность от (ч)
+            <input type="number" step="0.1" min="0" name="min_duration_h" />
+          </label>
+          <label>Длительность до (ч)
+            <input type="number" step="0.1" min="0" name="max_duration_h" />
+          </label>
+          <label>Страна вылета
+            <input type="text" name="departure_country" />
+          </label>
+          <label>Город/аэропорт вылета
+            <input type="text" name="departure_city_or_airport" />
+          </label>
+          <label>Страна прилёта
+            <input type="text" name="arrival_country" />
+          </label>
+          <label>Город/аэропорт прилёта
+            <input type="text" name="arrival_city_or_airport" />
+          </label>
+          <label>Аэропорт прилёта
+            <input type="text" name="arrival_airport" />
+          </label>
+          <label>Тип самолёта (ICAO, напр. B738)
+            <input type="text" name="aircraft_icao" />
+          </label>
+          <label>Авиакомпания
+            <input type="text" name="airline" />
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" name="include_past" />
+            Включать прошедшие рейсы (кэш до 5 дней)
+          </label>
+        </div>
+        <button type="submit">Найти рейсы</button>
+      </form>
+
+      <p id="message"></p>
+
+      <table id="results-table" hidden>
+        <thead>
+          <tr>
+            <th>Позывной</th>
+            <th>Рейс</th>
+            <th>Авиакомпания</th>
+            <th>Тип ВС</th>
+            <th>Вылет</th>
+            <th>Прилёт</th>
+            <th>Длительность (мин)</th>
+            <th>Прошедший</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
