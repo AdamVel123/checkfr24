@@ -108,3 +108,25 @@ def test_match_filters_airline_by_callsign_prefix() -> None:
     filters = FlightFilter(airline="AFL")
     assert FR24Service._match_filters(flight, filters) is True
 
+
+
+def test_to_view_handles_none_nested_detail_objects() -> None:
+    service = object.__new__(FR24Service)
+    raw = {
+        "id": "f1",
+        "callsign": "AFL123",
+        "airline_name": "Aeroflot",
+        "aircraft_code": "B738",
+    }
+    details = {
+        "airport": {"origin": None, "destination": None},
+        "status": None,
+        "airline": {"name": "Aeroflot"},
+    }
+
+    view = service._to_view(raw, details)
+    assert view.fr24_id == "f1"
+    assert view.callsign == "AFL123"
+    assert view.departure_city is None
+    assert view.arrival_city is None
+

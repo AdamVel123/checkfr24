@@ -71,52 +71,57 @@ class FR24Service:
         return text or None
 
 
+    @staticmethod
+    def _as_dict(value: Any) -> dict[str, Any]:
+        return value if isinstance(value, dict) else {}
+
+
     def _to_view(self, raw: Any, details: dict[str, Any] | None = None) -> FlightView:
         data = raw if isinstance(raw, dict) else getattr(raw, "__dict__", {})
         details = details or {}
 
-        dep_detail = details.get("airport", {}).get("origin", {})
-        arr_detail = details.get("airport", {}).get("destination", {})
 
-        departure_city = (
-            data.get("origin_city")
-            or data.get("airport_origin_city")
-            or dep_detail.get("position", {}).get("region", {}).get("city")
-        )
-        arrival_city = (
-            data.get("destination_city")
-            or data.get("airport_destination_city")
-            or arr_detail.get("position", {}).get("region", {}).get("city")
-        )
-        departure_airport = (
-            data.get("origin_airport_iata")
-            or data.get("airport_origin_code_iata")
-            or dep_detail.get("code", {}).get("iata")
-        )
+        airport = self._as_dict(details.get("airport"))
+        dep_detail = self._as_dict(airport.get("origin"))
+        arr_detail = self._as_dict(airport.get("destination"))
+
+        dep_pos = self._as_dict(dep_detail.get("position"))
+        arr_pos = self._as_dict(arr_detail.get("position"))
+        dep_region = self._as_dict(dep_pos.get("region"))
+        arr_region = self._as_dict(arr_pos.get("region"))
+        dep_country_obj = self._as_dict(dep_pos.get("country"))
+        arr_country_obj = self._as_dict(arr_pos.get("country"))
+        dep_code = self._as_dict(dep_detail.get("code"))
+        arr_code = self._as_dict(arr_detail.get("code"))
+
+        departure_city = data.get("origin_city") or data.get("airport_origin_city") or dep_region.get("city")
+        arrival_city = data.get("destination_city") or data.get("airport_destination_city") or arr_region.get("city")
+        departure_airport = data.get("origin_airport_iata") or data.get("airport_origin_code_iata") or dep_code.get("iata")
         arrival_airport = (
-            data.get("destination_airport_iata")
-            or data.get("airport_destination_code_iata")
-            or arr_detail.get("code", {}).get("iata")
+            data.get("destination_airport_iata") or data.get("airport_destination_code_iata") or arr_code.get("iata")
         )
 
-        airline_name = data.get("airline_name") or details.get("airline", {}).get("name")
-        airline_icao = data.get("airline_icao") or details.get("airline", {}).get("code", {}).get("icao")
-        airline_iata = data.get("airline_iata") or details.get("airline", {}).get("code", {}).get("iata")
+        airline = self._as_dict(details.get("airline"))
+        airline_code = self._as_dict(airline.get("code"))
+        airline_name = data.get("airline_name") or airline.get("name")
+        airline_icao = data.get("airline_icao") or airline_code.get("icao")
+        airline_iata = data.get("airline_iata") or airline_code.get("iata")
         airline_field = " ".join([item for item in [airline_name, airline_icao, airline_iata] if item]) or None
 
-        dep_country = (
-            data.get("origin_country")
-            or data.get("airport_origin_country_name")
-            or dep_detail.get("position", {}).get("country", {}).get("name")
-        )
+        dep_country = data.get("origin_country") or data.get("airport_origin_country_name") or dep_country_obj.get("name")
         arr_country = (
-            data.get("destination_country")
-            or data.get("airport_destination_country_name")
-            or arr_detail.get("position", {}).get("country", {}).get("name")
+            data.get("destination_country") or data.get("airport_destination_country_name") or arr_country_obj.get("name")
         )
 
+        identification = self._as_dict(details.get("identification"))
+        identification_number = self._as_dict(identification.get("number"))
+
+        aircraft = self._as_dict(details.get("aircraft"))
+        aircraft_model = self._as_dict(aircraft.get("model"))
+
+        status = self._as_dict(details.get("status"))
         duration_min = self._extract_duration_min(data, details)
-        status_text = (data.get("status") or details.get("status", {}).get("text") or "").lower()
+        status_text = (data.get("status") or status.get("text") or "").lower()
 
         is_past = "landed" in status_text or "arrived" in status_text
 
@@ -127,15 +132,13 @@ class FR24Service:
                 data.get("number")
                 or data.get("flight")
                 or data.get("flight_number")
-                or details.get("identification", {}).get("number", {}).get("default")
+
+                or identification_number.get("default")
             ),
-            callsign=self._safe_str(data.get("callsign") or details.get("identification", {}).get("callsign")),
+            callsign=self._safe_str(data.get("callsign") or identification.get("callsign")),
             airline=self._safe_str(airline_field),
-            aircraft_icao=self._safe_str(
-                data.get("aircraft_code")
-                or data.get("aircraft_icao")
-                or details.get("aircraft", {}).get("model", {}).get("code")
-            ),
+            aircraft_icao=self._safe_str(data.get("aircraft_code") or data.get("aircraft_icao") or aircraft_model.get("code")),
+
             departure_airport=self._safe_str(departure_airport),
             departure_city=self._safe_str(departure_city),
             departure_country=self._safe_str(dep_country),
@@ -152,7 +155,10 @@ class FR24Service:
     def _extract_duration_min(data: dict[str, Any], details: dict[str, Any] | None = None) -> int | None:
         details = details or {}
 
-        scheduled = details.get("time", {}).get("scheduled", {})
+        time_obj = details.get("time") if isinstance(details.get("time"), dict) else {}
+        scheduled = time_obj.get("scheduled") if isinstance(time_obj.get("scheduled"), dict) else {}
+
+
         departure_ts = scheduled.get("departure") or data.get("time_scheduled") or data.get("scheduled_departure")
         arrival_ts = scheduled.get("arrival") or data.get("time_estimated") or data.get("scheduled_arrival")
 

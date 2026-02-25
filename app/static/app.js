@@ -67,13 +67,21 @@ form.addEventListener('submit', async (e) => {
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.detail || 'Ошибка запроса');
+
+    const rawText = await response.text();
+    let data = {};
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch (_) {
+      data = { detail: rawText || 'Сервер вернул не-JSON ответ.' };
     }
 
+    if (!response.ok) {
+      throw new Error(data.detail || `Ошибка запроса (HTTP ${response.status})`);
+    }
 
-    renderFlights(data.flights);
+    renderFlights(data.flights || []);
+
     table.hidden = false;
     setMessage(`Найдено рейсов: ${data.count}`, 'success');
   } catch (error) {

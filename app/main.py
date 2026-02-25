@@ -60,6 +60,10 @@ def search_flights(payload: FlightFilterRequest) -> dict:
     except FR24ServiceError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка обработки рейсов: {exc}") from exc
+
+
     cache.save(live_flights)
 
     result = live_flights
