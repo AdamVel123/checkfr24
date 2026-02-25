@@ -2,12 +2,15 @@ const form = document.getElementById('filters-form');
 const message = document.getElementById('message');
 const table = document.getElementById('results-table');
 const tbody = table.querySelector('tbody');
+
 const hintNodes = Array.from(document.querySelectorAll('.field-hint'));
+
 
 function setMessage(text, type = 'info') {
   message.textContent = text;
   message.className = `message message-${type}`;
 }
+
 
 function setHint(field, text = '', state = 'neutral') {
   const el = hintNodes.find((node) => node.dataset.hintFor === field);
@@ -23,6 +26,7 @@ function clearHints() {
   });
 }
 
+
 function toPayload(formData) {
   const payload = {};
   for (const [key, value] of formData.entries()) {
@@ -34,12 +38,15 @@ function toPayload(formData) {
     if (key === 'min_duration_h' || key === 'max_duration_h') {
       payload[key] = Number(value);
     } else {
+
       payload[key] = value.trim();
+
     }
   }
   if (!('include_past' in payload)) payload.include_past = false;
   return payload;
 }
+
 
 function contains(source, expected) {
   if (!expected) return true;
@@ -112,14 +119,17 @@ function renderFlights(flights) {
     const dep = [flight.departure_airport_icao, flight.departure_airport].filter(Boolean).join(' / ');
     const arr = [flight.arrival_airport_icao, flight.arrival_airport].filter(Boolean).join(' / ');
 
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${flight.callsign ?? '-'}</td>
       <td>${flight.flight_number ?? '-'}</td>
       <td>${flight.airline ?? '-'}</td>
       <td>${flight.aircraft_icao ?? '-'}</td>
+
       <td>${flight.departure_city ?? ''} (${dep || '-'})</td>
       <td>${flight.arrival_city ?? ''} (${arr || '-'})</td>
+
       <td>${flight.scheduled_duration_min ?? '-'}</td>
       <td>${flight.is_past ? 'Да' : 'Нет'}</td>
     `;
@@ -127,29 +137,35 @@ function renderFlights(flights) {
   });
 }
 
+
 form.addEventListener('reset', () => {
   tbody.innerHTML = '';
   table.hidden = true;
   clearHints();
+
   setMessage('Фильтры сброшены. Укажите параметры и начните новый поиск.', 'info');
 });
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   setMessage('Загрузка данных из FlightRadar24...', 'info');
+
   table.hidden = true;
   const payload = toPayload(new FormData(form));
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);
 
+
   try {
     const response = await fetch('/api/flights/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+
       signal: controller.signal,
     });
+
 
     const rawText = await response.text();
     let data = {};
@@ -162,6 +178,7 @@ form.addEventListener('submit', async (e) => {
     if (!response.ok) {
       throw new Error(data.detail || `Ошибка запроса (HTTP ${response.status})`);
     }
+
 
     const flights = data.flights || [];
     renderFlights(flights);
@@ -176,5 +193,6 @@ form.addEventListener('submit', async (e) => {
     }
   } finally {
     clearTimeout(timer);
+
   }
 });
