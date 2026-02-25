@@ -1,54 +1,240 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f7fb;
-  margin: 0;
+
+:root {
+  --bg: #0b1220;
+  --bg-soft: #111a2d;
+  --card: rgba(18, 28, 48, 0.9);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --text: #e9eefc;
+  --muted: #a6b4d6;
+  --primary: #5b8cff;
+  --primary-hover: #4c7cf0;
+  --success: #1d9b66;
+  --danger: #cc4a58;
 }
 
-.container {
-  max-width: 1100px;
-  margin: 24px auto;
-  background: #fff;
-  border-radius: 12px;
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--text);
+  background: radial-gradient(1200px 700px at 10% -20%, #1e3f8a 0%, transparent 45%),
+    radial-gradient(1000px 600px at 100% 0%, #4a2075 0%, transparent 45%), var(--bg);
+}
+
+.page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+  display: grid;
+  gap: 18px;
+}
+
+.hero,
+.card {
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  background: var(--card);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+}
+
+.hero {
+  padding: 24px;
+}
+
+.hero h1 {
+  margin: 8px 0 10px;
+  font-size: clamp(1.45rem, 3.4vw, 2.35rem);
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  margin: 0;
+  color: var(--muted);
+  max-width: 860px;
+}
+
+.hero-badge {
+  display: inline-block;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: #cfe0ff;
+  background: rgba(91, 140, 255, 0.22);
+  border: 1px solid rgba(154, 184, 255, 0.35);
+}
+
+.card {
   padding: 20px;
+}
+
+h2 {
+  margin: 0 0 14px;
+  font-size: 1.1rem;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
+
+  gap: 7px;
+  font-size: 0.87rem;
+  color: var(--muted);
+
 }
 
 input[type='text'],
 input[type='number'] {
-  padding: 8px;
+
+  width: 100%;
+  border: 1px solid rgba(183, 201, 245, 0.24);
+  background: rgba(5, 11, 24, 0.55);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input::placeholder {
+  color: #7082af;
+}
+
+input:focus {
+  border-color: rgba(110, 156, 255, 0.95);
+  box-shadow: 0 0 0 3px rgba(91, 140, 255, 0.22);
+
 }
 
 .checkbox {
   flex-direction: row;
   align-items: center;
-  margin-top: 24px;
+
+  align-self: end;
+  min-height: 42px;
+  gap: 10px;
 }
 
-button {
+.checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
   margin-top: 16px;
-  padding: 10px 18px;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #dfe7ff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.message {
+  margin: 0;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.message-info {
+  color: #d1defe;
+  background: rgba(91, 140, 255, 0.18);
+  border-color: rgba(91, 140, 255, 0.38);
+}
+
+.message-success {
+  color: #c8f5e5;
+  background: rgba(29, 155, 102, 0.2);
+  border-color: rgba(57, 194, 136, 0.45);
+}
+
+.message-error {
+  color: #ffd6dc;
+  background: rgba(204, 74, 88, 0.18);
+  border-color: rgba(235, 98, 114, 0.4);
+}
+
+.table-wrap {
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
 }
 
 table {
   width: 100%;
-  margin-top: 20px;
+
+  min-width: 860px;
   border-collapse: collapse;
+  background: rgba(7, 13, 27, 0.65);
+}
+
+thead {
+  background: rgba(255, 255, 255, 0.06);
+
 }
 
 th,
 td {
-  border: 1px solid #ddd;
-  padding: 8px;
+
+  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.88rem;
+}
+
+tbody tr:hover {
+  background: rgba(110, 156, 255, 0.1);
+}
+
+@media (max-width: 760px) {
+  .results-header {
+    flex-direction: column;
+  }
+
 }
