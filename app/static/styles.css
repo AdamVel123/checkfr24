@@ -1,3 +1,4 @@
+
 :root {
   --bg: #0b1220;
   --bg-soft: #111a2d;
@@ -86,13 +87,16 @@ h2 {
 label {
   display: flex;
   flex-direction: column;
+
   gap: 7px;
   font-size: 0.87rem;
   color: var(--muted);
+
 }
 
 input[type='text'],
 input[type='number'] {
+
   width: 100%;
   border: 1px solid rgba(183, 201, 245, 0.24);
   background: rgba(5, 11, 24, 0.55);
@@ -110,11 +114,13 @@ input::placeholder {
 input:focus {
   border-color: rgba(110, 156, 255, 0.95);
   box-shadow: 0 0 0 3px rgba(91, 140, 255, 0.22);
+
 }
 
 .checkbox {
   flex-direction: row;
   align-items: center;
+
   align-self: end;
   min-height: 42px;
   gap: 10px;
@@ -197,10 +203,12 @@ input:focus {
   overflow: auto;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
+
 }
 
 table {
   width: 100%;
+
   min-width: 860px;
   border-collapse: collapse;
   background: rgba(7, 13, 27, 0.65);
@@ -208,10 +216,12 @@ table {
 
 thead {
   background: rgba(255, 255, 255, 0.06);
+
 }
 
 th,
 td {
+
   text-align: left;
   padding: 12px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -226,4 +236,5 @@ tbody tr:hover {
   .results-header {
     flex-direction: column;
   }
+
 }

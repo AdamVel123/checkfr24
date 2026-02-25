@@ -3,10 +3,12 @@ const message = document.getElementById('message');
 const table = document.getElementById('results-table');
 const tbody = table.querySelector('tbody');
 
+
 function setMessage(text, type = 'info') {
   message.textContent = text;
   message.className = `message message-${type}`;
 }
+
 
 function toPayload(formData) {
   const payload = {};
@@ -44,6 +46,7 @@ function renderFlights(flights) {
   });
 }
 
+
 form.addEventListener('reset', () => {
   tbody.innerHTML = '';
   table.hidden = true;
@@ -53,6 +56,7 @@ form.addEventListener('reset', () => {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   setMessage('Загрузка данных из FlightRadar24...', 'info');
+
   table.hidden = true;
   const payload = toPayload(new FormData(form));
 
@@ -68,10 +72,12 @@ form.addEventListener('submit', async (e) => {
       throw new Error(data.detail || 'Ошибка запроса');
     }
 
+
     renderFlights(data.flights);
     table.hidden = false;
     setMessage(`Найдено рейсов: ${data.count}`, 'success');
   } catch (error) {
     setMessage(error.message, 'error');
+
   }
 });

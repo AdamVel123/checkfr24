@@ -66,6 +66,7 @@ def test_cache_prune(tmp_path) -> None:
     assert cache.get_all() == []
 
 
+
 def test_match_filters_country_alias_ru() -> None:
     flight = FlightView(
         fr24_id="2",
@@ -106,3 +107,4 @@ def test_match_filters_airline_by_callsign_prefix() -> None:
 
     filters = FlightFilter(airline="AFL")
     assert FR24Service._match_filters(flight, filters) is True
+
