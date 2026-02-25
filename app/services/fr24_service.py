@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+
+from time import monotonic
+
 from typing import Any
 
 from app.schemas import FlightFilter, FlightView
@@ -39,6 +42,8 @@ class FR24Service:
     def search(self, filters: FlightFilter, limit: int = 100) -> list[FlightView]:
         flights = self.api.get_flights()
 
+        deadline = monotonic() + 12.0
+
 
         candidates: list[Any] = []
         for raw in flights:
@@ -47,7 +52,12 @@ class FR24Service:
                 candidates.append(raw)
 
         result: list[FlightView] = []
-        for raw in candidates[: max(limit * 5, 250)]:
+
+        for raw in candidates[: max(limit * 4, 180)]:
+            if monotonic() > deadline:
+                break
+
+
             details: dict[str, Any] | None
             try:
                 details = self.api.get_flight_details(raw)
@@ -94,12 +104,17 @@ class FR24Service:
         dep_code = self._as_dict(dep_detail.get("code"))
         arr_code = self._as_dict(arr_detail.get("code"))
 
+
+        dep_iata = data.get("origin_airport_iata") or data.get("airport_origin_code_iata") or dep_code.get("iata")
+        arr_iata = data.get("destination_airport_iata") or data.get("airport_destination_code_iata") or arr_code.get("iata")
+        dep_icao = data.get("origin_airport_icao") or data.get("airport_origin_code_icao") or dep_code.get("icao")
+        arr_icao = (
+            data.get("destination_airport_icao") or data.get("airport_destination_code_icao") or arr_code.get("icao")
+        )
+
         departure_city = data.get("origin_city") or data.get("airport_origin_city") or dep_region.get("city")
         arrival_city = data.get("destination_city") or data.get("airport_destination_city") or arr_region.get("city")
-        departure_airport = data.get("origin_airport_iata") or data.get("airport_origin_code_iata") or dep_code.get("iata")
-        arrival_airport = (
-            data.get("destination_airport_iata") or data.get("airport_destination_code_iata") or arr_code.get("iata")
-        )
+
 
         airline = self._as_dict(details.get("airline"))
         airline_code = self._as_dict(airline.get("code"))
@@ -139,10 +154,12 @@ class FR24Service:
             airline=self._safe_str(airline_field),
             aircraft_icao=self._safe_str(data.get("aircraft_code") or data.get("aircraft_icao") or aircraft_model.get("code")),
 
-            departure_airport=self._safe_str(departure_airport),
+            departure_airport=self._safe_str(dep_iata),
+            departure_airport_icao=self._safe_str(dep_icao),
             departure_city=self._safe_str(departure_city),
             departure_country=self._safe_str(dep_country),
-            arrival_airport=self._safe_str(arrival_airport),
+            arrival_airport=self._safe_str(arr_iata),
+            arrival_airport_icao=self._safe_str(arr_icao),
             arrival_city=self._safe_str(arrival_city),
             arrival_country=self._safe_str(arr_country),
 
@@ -212,6 +229,9 @@ class FR24Service:
         if not (
             cls._contains(flight.departure_city, filters.departure_city_or_airport)
             or cls._contains(flight.departure_airport, filters.departure_city_or_airport)
+
+            or cls._contains(flight.departure_airport_icao, filters.departure_city_or_airport)
+
         ):
             return False
         if expected_arr_country and not cls._contains(flight_arr_country, expected_arr_country):
@@ -219,9 +239,15 @@ class FR24Service:
         if not (
             cls._contains(flight.arrival_city, filters.arrival_city_or_airport)
             or cls._contains(flight.arrival_airport, filters.arrival_city_or_airport)
+
+            or cls._contains(flight.arrival_airport_icao, filters.arrival_city_or_airport)
         ):
             return False
-        if not cls._contains(flight.arrival_airport, filters.arrival_airport):
+        if not (
+            cls._contains(flight.arrival_airport, filters.arrival_airport)
+            or cls._contains(flight.arrival_airport_icao, filters.arrival_airport)
+        ):
+
             return False
         if not cls._contains(flight.aircraft_icao, filters.aircraft_icao):
             return False

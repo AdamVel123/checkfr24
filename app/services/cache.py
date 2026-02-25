@@ -53,7 +53,17 @@ class FlightCache:
     def get_all(self) -> list[FlightView]:
         with self._connect() as conn:
             rows = conn.execute("SELECT payload FROM flights_cache").fetchall()
-        return [FlightView(**json.loads(row[0])) for row in rows]
+
+
+        flights: list[FlightView] = []
+        for row in rows:
+            payload = json.loads(row[0])
+            payload.setdefault("departure_airport_icao", None)
+            payload.setdefault("arrival_airport_icao", None)
+            flights.append(FlightView(**payload))
+
+        return flights
+
 
     def prune(self, days: int = 5) -> int:
         threshold = datetime.now(timezone.utc) - timedelta(days=days)
