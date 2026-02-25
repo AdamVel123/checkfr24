@@ -11,6 +11,7 @@ class FR24ServiceError(RuntimeError):
 
 class FR24Service:
 
+
     def __init__(self) -> None:
         try:
             from FlightRadar24 import FlightRadar24API  # type: ignore
@@ -23,6 +24,7 @@ class FR24Service:
 
     def search(self, filters: FlightFilter, limit: int = 100) -> list[FlightView]:
         flights = self.api.get_flights()
+
 
 
     @staticmethod
