@@ -46,7 +46,6 @@ def search_flights(payload: FlightFilterRequest) -> dict:
     if not filters.has_any_filter():
         raise HTTPException(status_code=400, detail="Добавьте хотя бы один фильтр для поиска.")
 
-    if filters.min_duration_h is not None and filters.max_duration_h is not None:
         if filters.min_duration_h > filters.max_duration_h:
             raise HTTPException(status_code=400, detail="Минимальная длительность больше максимальной.")
 
