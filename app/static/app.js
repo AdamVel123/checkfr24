@@ -36,6 +36,7 @@ function toPayload(formData) {
       payload[key] = Number(value);
     } else {
       payload[key] = value.trim();
+
     }
   }
   if (!('include_past' in payload)) payload.include_past = false;
@@ -92,6 +93,7 @@ function updateFieldHints(payload, flights) {
   ];
 
   const hasResults = flights.length > 0;
+
 
   for (const field of fields) {
     const value = payload[field];

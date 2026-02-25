@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from time import monotonic
+
 from typing import Any
 
 from app.schemas import FlightFilter, FlightView
@@ -251,6 +252,7 @@ class FR24Service:
             cls._contains(flight.departure_city, filters.departure_city_or_airport)
             or cls._contains(flight.departure_airport, filters.departure_city_or_airport)
             or cls._contains(flight.departure_airport_icao, filters.departure_city_or_airport)
+
         ):
             return False
         if expected_arr_country and not cls._contains(flight_arr_country, expected_arr_country):
