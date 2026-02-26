@@ -145,7 +145,7 @@ async function handleSearch(e) {
   const payload = toPayload(new FormData(form));
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000);
+  const timer = setTimeout(() => controller.abort(), 70000);
 
   try {
     const response = await fetch('/api/flights/search', {
@@ -180,7 +180,7 @@ async function handleSearch(e) {
     }
   } catch (error) {
     if (error?.name === 'AbortError') {
-      setMessage('Поиск занял слишком много времени. Уточните фильтры (например ICAO аэропорта).', 'error');
+      setMessage('Поиск занял слишком много времени. Попробуйте сузить запрос (например добавить авиакомпанию или тип ВС).', 'error');
     } else {
       setMessage(error?.message || 'Не удалось выполнить поиск.', 'error');
     }

@@ -55,7 +55,7 @@ class FR24Service:
             ]
         )
 
-        deadline = monotonic() + (35.0 if has_duration_filter and not needs_details_for_matching else 25.0)
+        deadline = monotonic() + (60.0 if needs_details_for_matching else (50.0 if has_duration_filter else 35.0))
 
         flights = self._get_live_flights()
         candidates: list[Any] = []
@@ -138,7 +138,7 @@ class FR24Service:
 
         if flight_id:
             try:
-                resp = self.session.get(self.DETAILS_URL, params={"flight": flight_id}, timeout=8)
+                resp = self.session.get(self.DETAILS_URL, params={"flight": flight_id}, timeout=2.5)
                 resp.raise_for_status()
                 data = resp.json()
                 return data if isinstance(data, dict) else None
